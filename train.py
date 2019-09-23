@@ -59,8 +59,9 @@ def main():
     path2 = os.path.join(path, 'classification/train.py')
     path3 = os.path.join(path, 'regression/model.py')
     path4 = os.path.join(path, 'regression/train.py')
+    path5 = os.path.join(path, args.config)
     logger = get_logger('log', logpath=config.summary_dir+'/',
-                        filepath=os.path.abspath(__file__), package_files=[path1, path2, path3, path4])
+                        filepath=os.path.abspath(__file__), package_files=[path1, path2, path3, path4, path5])
 
     logger.info(config)
 
@@ -72,7 +73,17 @@ def main():
 
         model_ = ClassificationModel(config,
                                      _CLASSIFICATION_INPUT_DIM[config.dataset],
-                                     len(train_loader.dataset))
+                                     len(train_loader.dataset), config.mode)
+        trainer = ClassificationTrainer(sess, model_, train_loader, test_loader, config, logger)
+
+    elif config.mode == "segmentation":
+        train_loader, test_loader = load_pytorch(config)
+
+        model_ = ClassificationModel(config,
+                                     [config.image_size, config.image_size, 1],
+                                     config.total_num_images * config.image_size * config.image_size,
+                                     config.mode, config.num_classes)
+
         trainer = ClassificationTrainer(sess, model_, train_loader, test_loader, config, logger)
 
     elif config.mode == "regression":
@@ -88,8 +99,12 @@ def main():
         print("Please choose either 'classification' or 'regression'.")
         raise NotImplementedError()
 
-    trainer.train()
+    if config.train:
+        trainer.train()
 
+    if config.validation:
+        trainer.load_checkpoint(config.checkpoint)
+        trainer.test_epoch_with_misc_metrics()
 
 if __name__ == "__main__":
     main()

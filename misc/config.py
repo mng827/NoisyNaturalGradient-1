@@ -35,6 +35,6 @@ def process_config(json_file):
     :return: config(dictionary)
     """
     config, _ = get_config_from_json(json_file)
-    config.summary_dir = os.path.join("./experiments", config.dataset, config.exp_name, "summary/")
-    config.checkpoint_dir = os.path.join("./experiments", config.dataset, config.exp_name, "checkpoint/")
+    config.summary_dir = os.path.join(config.log_dir, config.dataset, config.exp_name, "summary/")
+    config.checkpoint_dir = os.path.join(config.log_dir, config.dataset, config.exp_name, "checkpoint/")
     return config

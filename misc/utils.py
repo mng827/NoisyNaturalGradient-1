@@ -7,6 +7,7 @@ import time
 import logging
 import tensorflow as tf
 import numpy as np
+import pandas as pd
 import argparse
 
 
@@ -96,6 +97,46 @@ class Summarizer:
                 summary_writer.flush()
 
 
+class StatsLogger:
+    def __init__(self):
+        self.prediction_stats_2d_df = pd.DataFrame(columns=['Subject', 'Slice',
+                                                'MeanContourPtsClass1', 'MeanContourPtsClass2', 'MeanContourPtsClass3',
+                                                'MeanPtDistClass1', 'MeanPtDistClass2', 'MeanPtDistClass3',
+                                                'AssdMeanToSamplesPerPointClass1', 'AssdMeanToSamplesPerPointClass2', 'AssdMeanToSamplesPerPointClass3',
+                                                'DistMeanToGTPerPointClass1', 'DistMeanToGTPerPointClass2', 'DistMeanToGTPerPointClass3',
+                                                'Dice2DClass1', 'Dice2DClass2', 'Dice2DClass3',
+                                                'Assd2DClass1', 'Assd2DClass2', 'Assd2DClass3',
+                                                'PairwiseDice2DClass1', 'PairwiseDice2DClass2', 'PairwiseDice2DClass3',
+                                                'PairwiseAssd2DClass1', 'PairwiseAssd2DClass2', 'PairwiseAssd2DClass3',
+                                                'DiceMeanToSamplesPerSliceClass1', 'DiceMeanToSamplesPerSliceClass2', 'DiceMeanToSamplesPerSliceClass3',
+                                                'AssdMeanToSamplesPerSliceClass1', 'AssdMeanToSamplesPerSliceClass2', 'AssdMeanToSamplesPerSliceClass3',
+                                                'PredAreaClass1', 'PredAreaClass2', 'PredAreaClass3',
+                                                'GTAreaClass1', 'GTAreaClass2', 'GTAreaClass3'])
+
+    def append(self, info, dice_mean_to_samples_per_slice, assd_mean_to_samples_per_slice, dice_per_slice, assd_per_slice):
+        num_slices = dice_mean_to_samples_per_slice.shape[0]
+        for s in range(num_slices):
+            self.prediction_stats_2d_df = self.prediction_stats_2d_df.append({'Subject': info['Name'],
+                                                                    'Slice': s,
+                                                                    'Dice2DClass1': dice_per_slice[s, 1],
+                                                                    'Dice2DClass2': dice_per_slice[s, 2],
+                                                                    'Dice2DClass3': dice_per_slice[s, 3],
+                                                                    'Assd2DClass1': assd_per_slice[s, 1],
+                                                                    'Assd2DClass2': assd_per_slice[s, 2],
+                                                                    'Assd2DClass3': assd_per_slice[s, 3],
+                                                                    'DiceMeanToSamplesPerSliceClass1': dice_mean_to_samples_per_slice[s, 1],
+                                                                    'DiceMeanToSamplesPerSliceClass2': dice_mean_to_samples_per_slice[s, 2],
+                                                                    'DiceMeanToSamplesPerSliceClass3': dice_mean_to_samples_per_slice[s, 3],
+                                                                    'AssdMeanToSamplesPerSliceClass1': assd_mean_to_samples_per_slice[s, 1],
+                                                                    'AssdMeanToSamplesPerSliceClass2': assd_mean_to_samples_per_slice[s, 2],
+                                                                    'AssdMeanToSamplesPerSliceClass3': assd_mean_to_samples_per_slice[s, 3]}, ignore_index=True)
+
+
+    def save(self, filename):
+        self.prediction_stats_2d_df.to_csv('{}.csv'.format(filename), index=False, na_rep='nan')
+        self.prediction_stats_2d_df.to_pickle('{}.pkl'.format(filename))
+
+
 def var_shape(x):
     out = [k.value for k in x.get_shape()]
     assert all(isinstance(a, int) for a in out), \
@@ -105,3 +146,8 @@ def var_shape(x):
 
 def numel(x):
     return np.prod(var_shape(x))
+
+
+def softmax(x, axis):
+    e_x = np.exp(x - np.max(x))
+    return e_x / np.sum(e_x, axis=axis, keepdims=True)
